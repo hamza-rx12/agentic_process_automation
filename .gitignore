@@ -7,3 +7,4 @@ uv.lock
 .playwright-mcp
 mail_connection.py
 plan.txt
+logs/
