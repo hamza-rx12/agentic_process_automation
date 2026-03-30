@@ -1,0 +1,15 @@
+[project]
+name = "agentic-rpa"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "claude-agent-sdk>=0.1.0",
+    "imapclient>=3.1.0",
+    "python-dotenv>=1.2.2",
+]
+
+[tool.pyright]
+venvPath = "."
+venv = ".venv"

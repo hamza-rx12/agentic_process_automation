@@ -1,0 +1,9 @@
+.venv/
+__pycache__/
+*.pyc
+.env
+uv.lock
+.python-version
+.playwright-mcp
+mail_connection.py
+plan.txt
