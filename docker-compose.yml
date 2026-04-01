@@ -1,0 +1,37 @@
+services:
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    ports:
+      - "5672:5672"
+      - "15672:15672"  # management UI → http://localhost:15672 (guest/guest)
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  email_listener:
+    build: .
+    command: ["python3", "email_listener.py"]
+    env_file: .env
+    environment:
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq/
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
+
+  orchestrator:
+    build: .
+    command: ["python3", "orchestrator.py"]
+    env_file: .env
+    environment:
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq/
+      - BROWSER_HEADLESS=true
+    volumes:
+      - ./logs:/app/logs
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped

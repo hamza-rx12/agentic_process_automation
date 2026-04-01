@@ -1,16 +1,36 @@
 import os
-from dotenv import load_dotenv
 from claude_agent_sdk import ClaudeAgentOptions
 from claude_agent_sdk.types import McpStdioServerConfig
 
-load_dotenv()
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
 
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
+
+# Email / IMAP credentials
+EMAIL        = os.getenv("EMAIL", "")
+APP_PASSWORD = os.getenv("APP_PASSWORD", "")
+IMAP_HOST    = os.getenv("IMAP_HOST", "")
+IMAP_PORT    = int(os.getenv("IMAP_PORT", "993"))
 BROWSER_HEADLESS = os.getenv("BROWSER_HEADLESS", "false").lower() == "true"
 BROWSER_VIEWPORT = os.getenv("BROWSER_VIEWPORT", "1280x720")
 BROWSER_EXECUTABLE = os.getenv("BROWSER_EXECUTABLE", "/usr/bin/chromium")
 MAX_TURNS = int(os.getenv("MAX_TURNS", "50"))
 MAX_BUDGET_USD = float(os.getenv("MAX_BUDGET_USD", "5.0"))
+
+# Mail / orchestrator config
+RABBITMQ_URL       = os.getenv("RABBITMQ_URL", "amqp://guest:guest@localhost/")
+RABBITMQ_QUEUE     = os.getenv("RABBITMQ_QUEUE", "email_tasks")
+MAIL_BACKEND       = os.getenv("MAIL_BACKEND", "protonmail")
+POLL_INTERVAL_SECS = int(os.getenv("POLL_INTERVAL_SECS", "5"))
+TASK_TIMEOUT_SECS  = int(os.getenv("TASK_TIMEOUT_SECS", "300"))
+MAX_RETRIES        = int(os.getenv("MAX_RETRIES", "2"))
+SUPERVISOR_EMAIL   = os.getenv("SUPERVISOR_EMAIL", "")
+SMTP_HOST          = os.getenv("SMTP_HOST", "")
+SMTP_PORT          = int(os.getenv("SMTP_PORT", "587"))
 
 SYSTEM_PROMPT = """\
 You are a web browsing agent. You receive natural language instructions and execute them in a real browser using Playwright MCP tools.
@@ -69,13 +89,20 @@ def get_playwright_mcp_config() -> McpStdioServerConfig:
         "--executable-path", BROWSER_EXECUTABLE,
         "--viewport-size", f"{width},{height}",
     ])
-    return McpStdioServerConfig(command="npx", args=args)
+    env = {}
+    display = os.getenv("DISPLAY")
+    if display:
+        env["DISPLAY"] = display
+    config = McpStdioServerConfig(command="npx", args=args)
+    if env:
+        config["env"] = env
+    return config
 
 
 def get_agent_options(system_prompt: str | None = None) -> ClaudeAgentOptions:
     """Build ClaudeAgentOptions for the browser agent."""
     return ClaudeAgentOptions(
-        model="claude-sonnet-4-6",
+        model="claude-haiku-4-5",
         system_prompt=system_prompt or SYSTEM_PROMPT,
         mcp_servers={"playwright": get_playwright_mcp_config()},
         allowed_tools=["mcp__playwright__*"],
