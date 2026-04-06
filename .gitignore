@@ -4,8 +4,13 @@ __pycache__/
 .env
 uv.lock
 .python-version
-.playwright-mcp
-mail_connection.py
-plan.txt
+.playwright-mcp/
 logs/
-docs/
+.claude/
+*.html
+
+# throwaway test / debug files
+test_*.py
+*.png
+
+.pi

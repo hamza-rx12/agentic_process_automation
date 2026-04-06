@@ -1,22 +1,22 @@
 import json
 import os
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 
 class SessionLogger:
-    """Writes structured JSON-lines logs for a browser agent session."""
+    """Writes structured JSON-lines logs for an agent session."""
 
     def __init__(self, session_id: str | None = None):
         self.session_id = session_id or uuid.uuid4().hex[:8]
-        ts = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H-%M-%S")
+        ts = datetime.now(UTC).strftime("%Y-%m-%dT%H-%M-%S")
         os.makedirs("logs", exist_ok=True)
         self._path = f"logs/{ts}_{self.session_id}.jsonl"
         self._file = None
 
     def log(self, level: str, event: str, **data) -> None:
         entry = {
-            "timestamp": datetime.now(timezone.utc).isoformat(timespec="milliseconds"),
+            "timestamp": datetime.now(UTC).isoformat(timespec="milliseconds"),
             "level": level,
             "event": event,
             **data,

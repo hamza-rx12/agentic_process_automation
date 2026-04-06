@@ -1,7 +1,9 @@
 import sys
+
 import anyio
-from config import ANTHROPIC_API_KEY
-from browser_agent import run_single_task, run_conversational
+
+from apa.agents.browser import run, run_conversational
+from apa.config import ANTHROPIC_API_KEY
 
 
 def main():
@@ -11,7 +13,7 @@ def main():
 
     if len(sys.argv) > 1:
         instruction = " ".join(sys.argv[1:])
-        anyio.run(run_single_task, instruction)
+        anyio.run(run, instruction)
     else:
         anyio.run(run_conversational)
 

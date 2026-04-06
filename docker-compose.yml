@@ -4,34 +4,77 @@ services:
     image: rabbitmq:3-management-alpine
     ports:
       - "5672:5672"
-      - "15672:15672"  # management UI → http://localhost:15672 (guest/guest)
+      - "15672:15672"
+    environment:
+      RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS: "-rabbit vm_memory_high_watermark 0.95"
     healthcheck:
-      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      test: ["CMD", "rabbitmq-diagnostics", "check_port_connectivity"]
       interval: 10s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+    networks: [rpa]
+
+  listener:
+    build:
+      context: .
+      dockerfile: docker/agent.Dockerfile
+      network: host
+    command: ["-m", "apa.listener"]
+    env_file: .env
+    environment:
+      PYTHONUNBUFFERED: "1"
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq/
+    depends_on:
+      rabbitmq: { condition: service_healthy }
+    restart: unless-stopped
+    networks: [rpa]
+
+  agent:
+    build:
+      context: .
+      dockerfile: docker/agent.Dockerfile
+      network: host
+    command: ["-m", "apa.agents.browser.server"]
+    env_file: .env
+    environment:
+      PYTHONUNBUFFERED: "1"
+      BROWSER_HEADLESS: "true"
+      A2A_PORT: "8080"
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./logs:/app/logs
+    healthcheck:
+      test: ["CMD-SHELL", "python3 -c \"import urllib.request; urllib.request.urlopen('http://localhost:8080/health')\""]
+      interval: 15s
       timeout: 5s
       retries: 5
-
-  email_listener:
-    build: .
-    command: ["python3", "email_listener.py"]
-    env_file: .env
-    environment:
-      - RABBITMQ_URL=amqp://guest:guest@rabbitmq/
-    depends_on:
-      rabbitmq:
-        condition: service_healthy
+      start_period: 10s
     restart: unless-stopped
+    networks: [rpa]
 
   orchestrator:
-    build: .
-    command: ["python3", "orchestrator.py"]
+    build:
+      context: .
+      dockerfile: docker/orchestrator.Dockerfile
+      network: host
+    command: ["-m", "apa.orchestrator"]
     env_file: .env
     environment:
-      - RABBITMQ_URL=amqp://guest:guest@rabbitmq/
-      - BROWSER_HEADLESS=true
+      PYTHONUNBUFFERED: "1"
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq/
+      BROWSER_AGENT_URL: http://agent:8080
     volumes:
       - ./logs:/app/logs
     depends_on:
-      rabbitmq:
-        condition: service_healthy
+      rabbitmq: { condition: service_healthy }
+      agent: { condition: service_healthy }
     restart: unless-stopped
+    networks: [rpa]
+
+volumes:
+
+networks:
+  rpa:
+    driver: bridge
