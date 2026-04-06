@@ -105,11 +105,13 @@ def _extract_error_from_task(task: Task) -> str:
 
 async def _send_to_browser_agent(instruction: str) -> Task | A2AMessage:
     """Send a task to the browser agent via A2A and return the result."""
-    config = ClientConfig(streaming=False)
-    factory = ClientFactory(config)
-
+    # A single client shared for both card resolution and RPC calls.
+    # timeout=None is critical — browser tasks can take several minutes.
     async with httpx.AsyncClient(timeout=None) as http_client:
         from a2a.client.card_resolver import A2ACardResolver
+
+        config = ClientConfig(streaming=False, httpx_client=http_client)
+        factory = ClientFactory(config)
 
         resolver = A2ACardResolver(http_client, BROWSER_AGENT_URL)
         card = await resolver.get_agent_card()
