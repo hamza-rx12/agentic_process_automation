@@ -41,6 +41,7 @@ services:
       PYTHONUNBUFFERED: "1"
       BROWSER_HEADLESS: "true"
       A2A_PORT: "8080"
+      BROWSER_AGENT_URL: http://agent:8080
     ports:
       - "8080:8080"
     volumes:
@@ -72,8 +73,6 @@ services:
       agent: { condition: service_healthy }
     restart: unless-stopped
     networks: [rpa]
-
-volumes:
 
 networks:
   rpa:
