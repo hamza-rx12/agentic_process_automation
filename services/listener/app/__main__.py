@@ -96,10 +96,12 @@ def _run() -> None:
 
         for msg in messages:
             try:
+                payload = dataclasses.asdict(msg)
+                payload["source"] = "email"
                 channel.basic_publish(
                     exchange="",
                     routing_key=RABBITMQ_QUEUE,
-                    body=json.dumps(dataclasses.asdict(msg)),
+                    body=json.dumps(payload),
                     properties=pika.BasicProperties(delivery_mode=2),
                 )
                 log.info("Queued: %r / %r", msg.sender, msg.subject)

@@ -19,18 +19,34 @@ _BACKOFF_INITIAL = 5
 _BACKOFF_MAX = 300
 
 
-def _format_email_prompt(email_data: dict) -> str:
+def _format_task_prompt(data: dict) -> str:
+    source = data.get("source", "email")
+    if source == "alert":
+        alert = data.get("alert", {})
+        labels = alert.get("labels", {})
+        annotations = alert.get("annotations", {})
+        return (
+            "You received a Prometheus alert:\n"
+            f"Alert: {labels.get('alertname', 'unknown')}\n"
+            f"Service: {labels.get('service', 'unknown')}\n"
+            f"Severity: {labels.get('severity', 'unknown')}\n"
+            f"Summary: {annotations.get('summary', '')}\n"
+            f"Description: {annotations.get('description', '')}\n\n"
+            "Analyze this alert, query the relevant logs and metrics from the time of the alert, "
+            "and create a runbook dashboard in Grafana."
+        )
+    # Default: email
     return (
         "You received this email:\n"
-        f"From: {email_data.get('sender', 'unknown')}\n"
-        f"Subject: {email_data.get('subject', '(no subject)')}\n\n"
-        f"{email_data.get('body', '')}\n\n"
+        f"From: {data.get('sender', 'unknown')}\n"
+        f"Subject: {data.get('subject', '(no subject)')}\n\n"
+        f"{data.get('body', '')}\n\n"
         "Execute the requested task."
     )
 
 
 async def _process_email(agent: ClaudeAIAgent, email_data: dict) -> None:
-    prompt = _format_email_prompt(email_data)
+    prompt = _format_task_prompt(email_data)
     context_id = str(email_data.get("message_id") or email_data.get("subject", "task"))
     result = await agent.invoke(prompt, context_id=context_id)
     text = result.get("text", "")
