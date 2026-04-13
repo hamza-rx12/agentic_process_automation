@@ -20,7 +20,8 @@ scrape_configs:
       - targets: ["browser-agent:8080"]
     metrics_path: /metrics
 
-  - job_name: monitor-agent
-    static_configs:
-      - targets: ["monitor-agent:8081"]
-    metrics_path: /metrics
+  # monitor-agent /metrics deferred to a later phase
+  # - job_name: monitor-agent
+  #   static_configs:
+  #     - targets: ["monitor-agent:8081"]
+  #   metrics_path: /metrics

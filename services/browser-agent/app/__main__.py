@@ -53,15 +53,18 @@ def main():
 
     starlette_app = app.build()
 
-    from starlette.responses import JSONResponse
-    from starlette.routing import Mount, Route
-    from prometheus_client import make_asgi_app as make_metrics_app
+    from starlette.responses import JSONResponse, Response
+    from starlette.routing import Route
+    from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
 
     async def health(_request):
         return JSONResponse({"status": "ok"})
 
+    async def metrics(_request):
+        return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
+
     starlette_app.router.routes.append(Route("/health", health, methods=["GET"]))
-    starlette_app.router.routes.append(Mount("/metrics", make_metrics_app()))
+    starlette_app.router.routes.append(Route("/metrics", metrics, methods=["GET"]))
 
     logger.info("Starting A2A HTTP server on %s:%s (advertised %s)", bind_host, port, public_url)
     uvicorn.run(starlette_app, host=bind_host, port=port)
