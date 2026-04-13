@@ -53,14 +53,15 @@ def main():
 
     starlette_app = app.build()
 
-    # Health endpoint for docker-compose health check.
     from starlette.responses import JSONResponse
-    from starlette.routing import Route
+    from starlette.routing import Mount, Route
+    from prometheus_client import make_asgi_app as make_metrics_app
 
     async def health(_request):
         return JSONResponse({"status": "ok"})
 
     starlette_app.router.routes.append(Route("/health", health, methods=["GET"]))
+    starlette_app.router.routes.append(Mount("/metrics", make_metrics_app()))
 
     logger.info("Starting A2A HTTP server on %s:%s (advertised %s)", bind_host, port, public_url)
     uvicorn.run(starlette_app, host=bind_host, port=port)
