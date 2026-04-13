@@ -16,38 +16,29 @@ services:
     networks: [rpa]
 
   listener:
-    build:
-      context: .
-      dockerfile: docker/agent.Dockerfile
-      network: host
-    command: ["-m", "apa.listener"]
+    build: ./services/listener
     env_file: .env
     environment:
-      PYTHONUNBUFFERED: "1"
       RABBITMQ_URL: amqp://guest:guest@rabbitmq/
     depends_on:
       rabbitmq: { condition: service_healthy }
     restart: unless-stopped
     networks: [rpa]
 
-  agent:
-    build:
-      context: .
-      dockerfile: docker/agent.Dockerfile
-      network: host
-    command: ["-m", "apa.agents.browser.server"]
+  browser-agent:
+    build: ./services/browser-agent
     env_file: .env
     environment:
-      PYTHONUNBUFFERED: "1"
+      PORT: "8080"
+      HOST_OVERRIDE: "browser-agent"
+      AGENT_NAME: "browser-agent"
+      AGENT_DESCRIPTION: "Executes web browsing tasks using Playwright."
       BROWSER_HEADLESS: "true"
-      A2A_PORT: "8080"
-      BROWSER_AGENT_URL: http://agent:8080
+      LOG_LEVEL: "INFO"
     ports:
       - "8080:8080"
-    volumes:
-      - ./logs:/app/logs
     healthcheck:
-      test: ["CMD-SHELL", "python3 -c \"import urllib.request; urllib.request.urlopen('http://localhost:8080/health')\""]
+      test: ["CMD-SHELL", "/app/.venv/bin/python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8080/health')\""]
       interval: 15s
       timeout: 5s
       retries: 5
@@ -56,21 +47,17 @@ services:
     networks: [rpa]
 
   orchestrator:
-    build:
-      context: .
-      dockerfile: docker/orchestrator.Dockerfile
-      network: host
-    command: ["-m", "apa.orchestrator"]
+    build: ./services/orchestrator
     env_file: .env
     environment:
-      PYTHONUNBUFFERED: "1"
       RABBITMQ_URL: amqp://guest:guest@rabbitmq/
-      BROWSER_AGENT_URL: http://agent:8080
-    volumes:
-      - ./logs:/app/logs
+      BROWSER_AGENT_URL: http://browser-agent:8080
+      AGENT_NAME: "orchestrator"
+      AGENT_DESCRIPTION: "Email-driven orchestrator that dispatches browser tasks."
+      LOG_LEVEL: "INFO"
     depends_on:
       rabbitmq: { condition: service_healthy }
-      agent: { condition: service_healthy }
+      browser-agent: { condition: service_healthy }
     restart: unless-stopped
     networks: [rpa]
 
