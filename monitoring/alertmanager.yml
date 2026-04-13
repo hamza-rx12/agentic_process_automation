@@ -16,9 +16,9 @@ route:
 
 receivers:
   - name: default
-    # Phase 4: will add listener webhook here.
-    # webhook_configs:
-    #   - url: http://listener:9000/alerts
+    webhook_configs:
+      - url: http://listener:9000/alerts
+        send_resolved: false
 
   - name: null
 

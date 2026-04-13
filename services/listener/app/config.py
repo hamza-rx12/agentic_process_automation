@@ -20,3 +20,6 @@ MAIL_BACKEND = os.getenv("MAIL_BACKEND", "protonmail")
 # --- RabbitMQ ---
 RABBITMQ_URL = os.getenv("RABBITMQ_URL", "amqp://guest:guest@localhost/")
 RABBITMQ_QUEUE = os.getenv("RABBITMQ_QUEUE", "email_tasks")
+
+# --- Alerts webhook ---
+ALERTS_HTTP_PORT = int(os.getenv("ALERTS_HTTP_PORT", "9000"))
