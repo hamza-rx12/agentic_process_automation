@@ -1,0 +1,31 @@
+groups:
+  - name: rpa-stack
+    interval: 30s
+    rules:
+      - alert: BrowserAgentDown
+        expr: up{job="browser-agent"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: browser-agent
+        annotations:
+          summary: "browser-agent is down"
+          description: "browser-agent has been unreachable from Prometheus for >1 minute."
+
+      - alert: ContainerHighMemory
+        expr: container_memory_usage_bytes{name=~"agentic_rpa-.*"} / 1024 / 1024 > 800
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High memory on {{ $labels.name }}"
+          description: "{{ $labels.name }} is using {{ $value | humanize }} MB (>800) for 5 minutes."
+
+      - alert: ContainerHighCPU
+        expr: rate(container_cpu_usage_seconds_total{name=~"agentic_rpa-.*"}[2m]) > 0.8
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU on {{ $labels.name }}"
+          description: "{{ $labels.name }} is using {{ $value | printf \"%.2f\" }} cores (>0.8) for 5 minutes."
