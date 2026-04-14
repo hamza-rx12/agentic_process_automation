@@ -20,6 +20,10 @@ scrape_configs:
       - targets: ["browser-agent:8080"]
     metrics_path: /metrics
 
+  - job_name: cadvisor
+    static_configs:
+      - targets: ["cadvisor:8080"]
+
   # monitor-agent /metrics deferred to a later phase
   # - job_name: monitor-agent
   #   static_configs:

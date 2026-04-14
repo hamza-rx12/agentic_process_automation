@@ -131,6 +131,21 @@ services:
     depends_on: [loki, prometheus]
     networks: [rpa]
 
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:latest
+    privileged: true
+    devices:
+      - /dev/kmsg:/dev/kmsg
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    ports:
+      - "8088:8080"
+    networks: [rpa]
+
   alertmanager:
     image: prom/alertmanager:latest
     volumes:
