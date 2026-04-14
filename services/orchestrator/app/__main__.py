@@ -45,9 +45,9 @@ def _format_task_prompt(data: dict) -> str:
     )
 
 
-async def _process_email(agent: ClaudeAIAgent, email_data: dict) -> None:
-    prompt = _format_task_prompt(email_data)
-    context_id = str(email_data.get("message_id") or email_data.get("subject", "task"))
+async def _process_task(agent: ClaudeAIAgent, task_data: dict) -> None:
+    prompt = _format_task_prompt(task_data)
+    context_id = str(task_data.get("message_id") or task_data.get("subject", "task"))
     result = await agent.invoke(prompt, context_id=context_id)
     text = result.get("text", "")
     meta = result.get("metadata", {})
@@ -77,7 +77,7 @@ def _run_consumer(agent: ClaudeAIAgent) -> None:
                 try:
                     data = json.loads(body)
                     logger.info("Processing: %r", data.get("subject", "?"))
-                    anyio.run(_process_email, agent, data)
+                    anyio.run(_process_task, agent, data)
                 except Exception as e:
                     logger.exception("Error processing message: %s", e)
                 finally:
