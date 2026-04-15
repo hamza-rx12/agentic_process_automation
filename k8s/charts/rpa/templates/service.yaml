@@ -1,0 +1,22 @@
+{{- range $name, $svc := .Values.services }}
+{{- if $svc.ports }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $name }}
+  labels:
+    app.kubernetes.io/name: {{ $name }}
+    {{- include "rpa.labels" $ | nindent 4 }}
+spec:
+  selector:
+    app.kubernetes.io/name: {{ $name }}
+  ports:
+    {{- range $svc.ports }}
+    - name: {{ .name }}
+      port: {{ .containerPort }}
+      targetPort: {{ .containerPort }}
+      protocol: TCP
+    {{- end }}
+{{- end }}
+{{- end }}
