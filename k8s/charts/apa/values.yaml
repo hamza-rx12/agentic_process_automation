@@ -1,4 +1,4 @@
-# Default values for the rpa chart.
+# Default values for the apa chart.
 # Infrastructure (rabbitmq, postgres, prometheus, grafana, loki, alertmanager,
 # keda) is NOT part of this chart — install those from upstream community charts.
 
@@ -6,7 +6,7 @@ imagePullPolicy: IfNotPresent
 
 services:
   listener:
-    image: agentic-rpa/listener:dev
+    image: agentic-apa/listener:dev
     replicas: 1
     ports:
       - name: alerts
@@ -16,7 +16,7 @@ services:
       ALERTS_HTTP_PORT: "9000"
 
   orchestrator:
-    image: agentic-rpa/orchestrator:dev
+    image: agentic-apa/orchestrator:dev
     replicas: 1
     env:
       RABBITMQ_URL: amqp://guest:guest@rabbitmq/
@@ -24,7 +24,7 @@ services:
       MONITOR_AGENT_URL: http://monitor-agent:8081
 
   browser-agent:
-    image: agentic-rpa/browser-agent:dev
+    image: agentic-apa/browser-agent:dev
     replicas: 1
     ports:
       - name: http
@@ -36,7 +36,7 @@ services:
       BROWSER_HEADLESS: "true"
 
   monitor-agent:
-    image: agentic-rpa/monitor-agent:dev
+    image: agentic-apa/monitor-agent:dev
     replicas: 1
     ports:
       - name: http

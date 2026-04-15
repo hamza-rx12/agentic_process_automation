@@ -1,8 +1,8 @@
-# kind cluster config for the agentic_rpa stack.
+# kind cluster config for the apa repo (APA stack).
 #
 # Usage:
-#   kind create cluster --name rpa --config k8s/kind-config.yaml
-#   kind delete cluster --name rpa
+#   kind create cluster --name apa --config k8s/kind-config.yaml
+#   kind delete cluster --name apa
 #
 # Layout: 1 control-plane + 2 workers — enough to exercise pod anti-affinity
 # for RabbitMQ quorum queues and Postgres replicas without over-committing.
@@ -14,7 +14,7 @@
 
 kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
-name: rpa
+name: apa
 
 # Pin the node image so clusters are reproducible across machines.
 # Bump this when you want a newer Kubernetes.

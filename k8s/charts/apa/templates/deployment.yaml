@@ -6,7 +6,7 @@ metadata:
   name: {{ $name }}
   labels:
     app.kubernetes.io/name: {{ $name }}
-    {{- include "rpa.labels" $ | nindent 4 }}
+    {{- include "apa.labels" $ | nindent 4 }}
 spec:
   replicas: {{ $svc.replicas | default 1 }}
   selector:
@@ -16,7 +16,7 @@ spec:
     metadata:
       labels:
         app.kubernetes.io/name: {{ $name }}
-        {{- include "rpa.labels" $ | nindent 8 }}
+        {{- include "apa.labels" $ | nindent 8 }}
     spec:
       containers:
         - name: {{ $name }}

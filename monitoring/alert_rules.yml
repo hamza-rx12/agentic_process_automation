@@ -13,7 +13,7 @@ groups:
           description: "browser-agent has been unreachable from Prometheus for >1 minute."
 
       - alert: ContainerHighMemory
-        expr: container_memory_usage_bytes{name=~"agentic_rpa-.*"} / 1024 / 1024 > 800
+        expr: container_memory_usage_bytes{name=~"apa-.*"} / 1024 / 1024 > 800
         for: 5m
         labels:
           severity: warning
@@ -22,7 +22,7 @@ groups:
           description: "{{ $labels.name }} is using {{ $value | humanize }} MB (>800) for 5 minutes."
 
       - alert: ContainerHighCPU
-        expr: rate(container_cpu_usage_seconds_total{name=~"agentic_rpa-.*"}[2m]) > 0.8
+        expr: rate(container_cpu_usage_seconds_total{name=~"apa-.*"}[2m]) > 0.8
         for: 5m
         labels:
           severity: warning

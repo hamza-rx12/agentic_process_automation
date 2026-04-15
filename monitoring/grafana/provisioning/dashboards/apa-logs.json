@@ -28,7 +28,7 @@
             "type": "loki",
             "uid": "loki"
           },
-          "expr": "{project=\"agentic_rpa\"}",
+          "expr": "{project=\"apa\"}",
           "refId": "A"
         }
       ],
@@ -146,5 +146,5 @@
   },
   "timezone": "browser",
   "title": "RPA Logs",
-  "uid": "rpa-logs"
+  "uid": "apa-logs"
 }

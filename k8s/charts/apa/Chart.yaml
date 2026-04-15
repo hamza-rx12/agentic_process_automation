@@ -1,0 +1,6 @@
+apiVersion: v2
+name: apa
+description: Agentic Process Automation services — listener, orchestrator, browser-agent, monitor-agent
+type: application
+version: 0.1.0
+appVersion: "0.1.0"

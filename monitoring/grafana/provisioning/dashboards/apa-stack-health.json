@@ -67,7 +67,7 @@
       "targets": [
         {
           "datasourceUid": "prometheus",
-          "expr": "rate(container_cpu_usage_seconds_total{name=~\"agentic_rpa.*\"}[2m])",
+          "expr": "rate(container_cpu_usage_seconds_total{name=~\"apa.*\"}[2m])",
           "legendFormat": "{{name}}",
           "refId": "A"
         }
@@ -105,7 +105,7 @@
       "targets": [
         {
           "datasourceUid": "prometheus",
-          "expr": "container_memory_usage_bytes{name=~\"agentic_rpa.*\"} / 1024 / 1024",
+          "expr": "container_memory_usage_bytes{name=~\"apa.*\"} / 1024 / 1024",
           "legendFormat": "{{name}}",
           "refId": "A"
         }
@@ -125,5 +125,5 @@
   },
   "timezone": "browser",
   "title": "RPA Stack Health",
-  "uid": "rpa-stack-health"
+  "uid": "apa-stack-health"
 }
