@@ -6,7 +6,7 @@ imagePullPolicy: IfNotPresent
 
 services:
   listener:
-    image: agentic-apa/listener:dev
+    image: ghcr.io/hamza-rx12/apa-listener:latest
     replicas: 1
     ports:
       - name: alerts
@@ -16,7 +16,7 @@ services:
       ALERTS_HTTP_PORT: "9000"
 
   orchestrator:
-    image: agentic-apa/orchestrator:dev
+    image: ghcr.io/hamza-rx12/apa-orchestrator:latest
     replicas: 1
     env:
       RABBITMQ_URL: amqp://guest:guest@rabbitmq/
@@ -24,7 +24,7 @@ services:
       MONITOR_AGENT_URL: http://monitor-agent:8081
 
   browser-agent:
-    image: agentic-apa/browser-agent:dev
+    image: ghcr.io/hamza-rx12/apa-browser-agent:latest
     replicas: 1
     ports:
       - name: http
@@ -36,7 +36,7 @@ services:
       BROWSER_HEADLESS: "true"
 
   monitor-agent:
-    image: agentic-apa/monitor-agent:dev
+    image: ghcr.io/hamza-rx12/apa-monitor-agent:latest
     replicas: 1
     ports:
       - name: http

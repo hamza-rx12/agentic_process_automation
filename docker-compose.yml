@@ -15,9 +15,10 @@ services:
       timeout: 10s
       retries: 10
       start_period: 30s
-    networks: [rpa]
+    networks: [apa]
 
   listener:
+    image: apa-listener:latest
     build: ./services/listener
     env_file: .env
     environment:
@@ -28,9 +29,10 @@ services:
     depends_on:
       rabbitmq: { condition: service_healthy }
     restart: unless-stopped
-    networks: [rpa]
+    networks: [apa]
 
   browser-agent:
+    image: apa-browser-agent:latest
     build: ./services/browser-agent
     env_file: .env
     environment:
@@ -49,9 +51,10 @@ services:
       retries: 5
       start_period: 10s
     restart: unless-stopped
-    networks: [rpa]
+    networks: [apa]
 
   monitor-agent:
+    image: apa-monitor-agent:latest
     build: ./services/monitor-agent
     env_file: .env
     environment:
@@ -73,9 +76,10 @@ services:
     depends_on:
       grafana: { condition: service_started }
     restart: unless-stopped
-    networks: [rpa]
+    networks: [apa]
 
   orchestrator:
+    image: apa-orchestrator:latest
     build: ./services/orchestrator
     env_file: .env
     environment:
@@ -90,7 +94,7 @@ services:
       browser-agent: { condition: service_healthy }
       monitor-agent: { condition: service_healthy }
     restart: unless-stopped
-    networks: [rpa]
+    networks: [apa]
 
   # ── Observability stack ──
 
@@ -102,7 +106,7 @@ services:
       - prometheus-data:/prometheus
     ports:
       - "9090:9090"
-    networks: [rpa]
+    networks: [apa]
 
   loki:
     image: grafana/loki:3.4
@@ -111,7 +115,7 @@ services:
       - loki-data:/loki
     ports:
       - "3100:3100"
-    networks: [rpa]
+    networks: [apa]
 
   alloy:
     image: grafana/alloy:latest
@@ -126,7 +130,7 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - alloy-data:/var/lib/alloy/data
     depends_on: [loki]
-    networks: [rpa]
+    networks: [apa]
 
   grafana:
     image: grafana/grafana:11.6
@@ -138,7 +142,7 @@ services:
     ports:
       - "3000:3000"
     depends_on: [loki, prometheus]
-    networks: [rpa]
+    networks: [apa]
 
   cadvisor:
     image: gcr.io/cadvisor/cadvisor:latest
@@ -153,7 +157,7 @@ services:
       - /dev/disk/:/dev/disk:ro
     ports:
       - "8088:8080"
-    networks: [rpa]
+    networks: [apa]
 
   alertmanager:
     image: prom/alertmanager:latest
@@ -162,7 +166,7 @@ services:
       - alertmanager-data:/alertmanager
     ports:
       - "9093:9093"
-    networks: [rpa]
+    networks: [apa]
 
 volumes:
   prometheus-data:
@@ -172,5 +176,5 @@ volumes:
   alloy-data:
 
 networks:
-  rpa:
+  apa:
     driver: bridge
