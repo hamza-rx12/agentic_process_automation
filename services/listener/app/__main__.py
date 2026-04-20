@@ -18,6 +18,7 @@ from __future__ import annotations
 import dataclasses
 import json
 import logging
+import sys
 import threading
 import time
 import uuid
@@ -27,7 +28,27 @@ import pika
 from app.config import ALERTS_HTTP_PORT, RABBITMQ_QUEUE, RABBITMQ_URL
 from app.mail import MailConnection, get_connection
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+
+class _JSONFormatter(logging.Formatter):
+    """One log record per line, exceptions included as a single JSON field."""
+
+    def format(self, record: logging.LogRecord) -> str:
+        payload = {
+            "ts": self.formatTime(record, "%Y-%m-%dT%H:%M:%S"),
+            "level": record.levelname,
+            "logger": record.name,
+            "msg": record.getMessage(),
+        }
+        if record.exc_info:
+            payload["exception"] = self.formatException(record.exc_info)
+        if record.stack_info:
+            payload["stack"] = record.stack_info
+        return json.dumps(payload, default=str)
+
+
+_handler = logging.StreamHandler(sys.stdout)
+_handler.setFormatter(_JSONFormatter())
+logging.basicConfig(level=logging.INFO, handlers=[_handler], force=True)
 log = logging.getLogger("listener")
 
 _BACKOFF_INITIAL = 5
