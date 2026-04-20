@@ -58,6 +58,9 @@ nodes:
       - containerPort: 30000   # listener /alerts webhook
         hostPort: 9000
         protocol: TCP
+      - containerPort: 30080   # argocd UI (NodePort http)
+        hostPort: 8080
+        protocol: TCP
 
   - role: worker
     image: kindest/node:v1.31.0
