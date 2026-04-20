@@ -2,7 +2,6 @@
 Bootstrap the A2A HTTP server for this Claude Agent SDK agent.
 """
 
-import logging
 import sys
 
 import uvicorn
@@ -15,7 +14,6 @@ from app.a2a_core.agent_executor import ClaudeAIAgentExecutor
 from app.config import AppConfig
 from app.common.utils import build_skills_list, get_logger
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = get_logger(__name__)
 
 

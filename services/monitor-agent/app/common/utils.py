@@ -4,46 +4,54 @@ Common utilities for the A2A LambdaReady Agent.
 
 import json
 import logging
+import sys
 from a2a.types import AgentSkill
 
-def get_logger(name: str) -> logging.Logger:
+
+class _JSONFormatter(logging.Formatter):
+    """One log record per line, exceptions included as a single JSON field.
+
+    Keeps Loki/Alloy from splitting Python tracebacks across multiple lines.
     """
-    Standardized logger initialization with configured log level.
-    """
+
+    def format(self, record: logging.LogRecord) -> str:
+        payload = {
+            "ts": self.formatTime(record, "%Y-%m-%dT%H:%M:%S"),
+            "level": record.levelname,
+            "logger": record.name,
+            "msg": record.getMessage(),
+        }
+        if record.exc_info:
+            payload["exception"] = self.formatException(record.exc_info)
+        if record.stack_info:
+            payload["stack"] = record.stack_info
+        return json.dumps(payload, default=str)
+
+
+_LOG_INITIALIZED = False
+
+
+def _init_logging() -> None:
+    """Install the JSON formatter on the root logger. Idempotent."""
+    global _LOG_INITIALIZED
+    if _LOG_INITIALIZED:
+        return
     from app.configs.environment_vars.general_settings import general_settings
 
-    logger = logging.getLogger(name)
+    root = logging.getLogger()
+    for h in list(root.handlers):
+        root.removeHandler(h)
+    handler = logging.StreamHandler(sys.stdout)
+    handler.setFormatter(_JSONFormatter())
+    root.addHandler(handler)
+    root.setLevel(general_settings.LOG_LEVEL)
+    _LOG_INITIALIZED = True
 
-    # Configure logging to ensure messages are displayed at configured level
-    if not logger.handlers:
-        # Add console handler if none exists
-        handler = logging.StreamHandler()
-        handler.setLevel(general_settings.LOG_LEVEL)
-        formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(name)s - %(message)s')
-        handler.setFormatter(formatter)
-        logger.addHandler(handler)
-        logger.setLevel(general_settings.LOG_LEVEL)
 
-        # Disable propagation to root logger to prevent duplicate logs
-        logger.propagate = False
-
-        # Configure root logger to ensure all loggers propagate
-        root_logger = logging.getLogger()
-        if not root_logger.handlers:
-            root_handler = logging.StreamHandler()
-            root_handler.setLevel(general_settings.LOG_LEVEL)
-            root_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(name)s - %(message)s')
-            root_handler.setFormatter(root_formatter)
-            root_logger.addHandler(root_handler)
-            root_logger.setLevel(general_settings.LOG_LEVEL)
-    else:
-        # Ensure existing handlers are at configured level
-        for handler in logger.handlers:
-            if handler.level > general_settings.LOG_LEVEL:
-                handler.setLevel(general_settings.LOG_LEVEL)
-        logger.setLevel(general_settings.LOG_LEVEL)
-
-    return logger
+def get_logger(name: str) -> logging.Logger:
+    """Return a logger routed through the root JSON handler."""
+    _init_logging()
+    return logging.getLogger(name)
 
 def build_skills_list(skills_config) -> list[AgentSkill]:
     """

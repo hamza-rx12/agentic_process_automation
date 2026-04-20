@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import json
-import logging
 import time
 
 import anyio
@@ -12,7 +11,6 @@ from app.agent.claude_agent import ClaudeAIAgent
 from app.common.utils import get_logger
 from app.config import AppConfig
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = get_logger(__name__)
 
 _BACKOFF_INITIAL = 5
