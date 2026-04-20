@@ -1,0 +1,18 @@
+# One ConfigMap per dashboard JSON under dashboards/.
+# The Grafana sidecar watches for ConfigMaps with label
+# grafana_dashboard="1" and loads them into Grafana automatically.
+# Drop a new .json into dashboards/ and it'll be picked up on next sync.
+{{- range $path, $_ := .Files.Glob "dashboards/*.json" }}
+{{- $name := base $path | trimSuffix ".json" }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ $.Release.Name }}-dashboard-{{ $name }}
+  labels:
+    grafana_dashboard: "1"
+    {{- include "apa.labels" $ | nindent 4 }}
+data:
+  {{ base $path }}: |-
+{{ $.Files.Get $path | indent 4 }}
+{{- end }}

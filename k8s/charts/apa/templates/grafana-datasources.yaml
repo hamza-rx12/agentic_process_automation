@@ -1,0 +1,23 @@
+# Datasource for Loki. Prometheus is already provisioned by
+# kube-prometheus-stack, so we only need to add Loki here.
+# The Grafana sidecar (bundled with kube-prometheus-stack) watches for
+# ConfigMaps with label grafana_datasource="1" and auto-registers them.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-grafana-datasources
+  labels:
+    grafana_datasource: "1"
+    {{- include "apa.labels" . | nindent 4 }}
+data:
+  loki.yaml: |
+    apiVersion: 1
+    datasources:
+      - name: Loki
+        type: loki
+        uid: loki
+        access: proxy
+        url: http://loki-gateway.{{ .Release.Namespace }}.svc.cluster.local
+        isDefault: false
+        jsonData:
+          maxLines: 1000
