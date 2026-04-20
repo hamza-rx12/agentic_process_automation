@@ -1,0 +1,8 @@
+# Grafana Alloy values (log collector DaemonSet).
+
+alloy:
+  resources:
+    requests:
+      memory: 64Mi
+    limits:
+      memory: 128Mi

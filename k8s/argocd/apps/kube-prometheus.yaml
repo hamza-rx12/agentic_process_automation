@@ -1,0 +1,31 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: kube-prometheus
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  # Multi-source: chart from public Helm repo, values from our git repo.
+  sources:
+    - repoURL: https://prometheus-community.github.io/helm-charts
+      chart: kube-prometheus-stack
+      targetRevision: 83.5.0
+      helm:
+        releaseName: kube-prometheus
+        valueFiles:
+          - $values/k8s/infra/kube-prometheus-values.yaml
+    - repoURL: https://github.com/hamza-rx12/agentic_process_automation.git
+      targetRevision: master
+      ref: values
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: apa
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true  # kube-prometheus CRDs are huge

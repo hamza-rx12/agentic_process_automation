@@ -45,4 +45,4 @@ services:
       PORT: "8081"
       HOST_OVERRIDE: monitor-agent
       AGENT_NAME: monitor-agent
-      GRAFANA_URL: http://grafana:3000
+      GRAFANA_URL: http://kube-prometheus-grafana:80

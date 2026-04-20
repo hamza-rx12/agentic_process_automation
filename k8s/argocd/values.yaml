@@ -1,0 +1,21 @@
+# ArgoCD helm values (dev profile for kind).
+# Chart: argo/argo-cd
+# Defaults are fine; keep overrides minimal and explicit.
+
+# Expose the UI via NodePort so we don't need port-forward once kind has
+# extraPortMappings wired. Until then, `make argocd-forward` works too.
+server:
+  service:
+    type: NodePort
+    nodePort: 30800
+  # Dev only — skip TLS on the UI so port-forward just works.
+  extraArgs:
+    - --insecure
+
+# Disable features we don't need in dev to save resources.
+dex:
+  enabled: false
+notifications:
+  enabled: false
+applicationSet:
+  enabled: false

@@ -26,6 +26,9 @@ spec:
           ports:
             {{- toYaml . | nindent 12 }}
           {{- end }}
+          envFrom:
+            - secretRef:
+                name: apa-secrets
           {{- with $svc.env }}
           env:
             {{- range $k, $v := . }}

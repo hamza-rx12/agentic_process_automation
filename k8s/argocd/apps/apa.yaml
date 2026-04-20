@@ -1,0 +1,24 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: apa
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/hamza-rx12/agentic_process_automation.git
+    targetRevision: master
+    path: k8s/charts/apa
+    helm:
+      releaseName: apa
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: apa
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

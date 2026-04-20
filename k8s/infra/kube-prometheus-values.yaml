@@ -1,0 +1,34 @@
+# kube-prometheus-stack values tuned for kind (dev)
+# Trims replicas, disables persistence, exposes NodePorts matching kind-config.yaml.
+
+prometheus:
+  prometheusSpec:
+    replicas: 1
+    retention: 6h
+    resources:
+      requests:
+        memory: 256Mi
+      limits:
+        memory: 512Mi
+  service:
+    type: NodePort
+    nodePort: 30900
+
+grafana:
+  adminPassword: admin
+  service:
+    type: NodePort
+    nodePort: 30300
+
+alertmanager:
+  alertmanagerSpec:
+    replicas: 1
+    retention: 6h
+    resources:
+      requests:
+        memory: 64Mi
+      limits:
+        memory: 128Mi
+  service:
+    type: NodePort
+    nodePort: 30093
