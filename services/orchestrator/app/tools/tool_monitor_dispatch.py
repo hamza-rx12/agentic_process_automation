@@ -8,15 +8,15 @@ import uuid
 from typing import Any
 
 import httpx
-from a2a.client import ClientConfig
+from a2a.client import ClientFactory
 from a2a.client.card_resolver import A2ACardResolver
-from a2a.client.client_factory import ClientFactory
 from a2a.types import (
     Message as A2AMessage,
     Part,
     Role,
+    SendMessageRequest,
     Task,
-    TextPart,
+    TaskState,
 )
 from claude_agent_sdk import tool
 
@@ -26,10 +26,10 @@ from app.config import AppConfig
 logger = get_logger(__name__)
 
 
-def _extract_text_from_parts(parts: list[Part]) -> str:
+def _extract_text_from_parts(parts) -> str:
     for part in parts:
-        if isinstance(part.root, TextPart):
-            return part.root.text
+        if part.text:
+            return part.text
     return ""
 
 
@@ -55,27 +55,32 @@ async def _send_to_monitor_agent(instruction: str) -> tuple[str, bool]:
     target_url = AppConfig.get_dispatch_config().MONITOR_AGENT_URL
 
     async with httpx.AsyncClient(timeout=None) as http_client:
-        config = ClientConfig(streaming=False, httpx_client=http_client)
-        factory = ClientFactory(config)
-
+        factory = ClientFactory()
         resolver = A2ACardResolver(http_client, target_url)
         card = await resolver.get_agent_card()
         client = factory.create(card)
 
         msg = A2AMessage(
-            role=Role.user,
+            role=Role.ROLE_USER,
             message_id=str(uuid.uuid4()),
-            parts=[Part(root=TextPart(text=instruction))],
+            parts=[Part(text=instruction)],
         )
+        request = SendMessageRequest(message=msg)
 
-        async for event in client.send_message(msg):
-            if isinstance(event, A2AMessage):
-                return _extract_text_from_parts(event.parts) or "No output", False
-            task, _update = event
-            if task.status.state in ("completed", "failed", "canceled"):
-                if task.status.state == "completed":
+        async for response in client.send_message(request):
+            if response.HasField('message'):
+                return _extract_text_from_parts(response.message.parts) or "No output", False
+            if response.HasField('task'):
+                task = response.task
+                state = task.status.state
+                if state == TaskState.TASK_STATE_COMPLETED:
                     return _extract_text_from_task(task), False
-                return f"FAILED: {_extract_error_from_task(task)}", True
+                if state in (TaskState.TASK_STATE_FAILED, TaskState.TASK_STATE_CANCELED):
+                    return f"FAILED: {_extract_error_from_task(task)}", True
+            if response.HasField('status_update'):
+                state = response.status_update.status.state
+                if state in (TaskState.TASK_STATE_FAILED, TaskState.TASK_STATE_CANCELED):
+                    return "FAILED: agent task failed", True
 
     return "No terminal response from monitor agent", True
 

@@ -5,9 +5,12 @@ Bootstrap the A2A HTTP server for this Claude Agent SDK agent.
 import sys
 
 import uvicorn
-from a2a.server.apps import A2AStarletteApplication
+from a2a.server.routes import create_agent_card_routes, create_jsonrpc_routes
 from a2a.server.request_handlers import DefaultRequestHandler
 from a2a.server.tasks import InMemoryTaskStore
+from starlette.applications import Starlette
+from starlette.responses import JSONResponse
+from starlette.routing import Route
 
 from app.a2a_core.agent_card import build_agent_card
 from app.a2a_core.agent_executor import ClaudeAIAgentExecutor
@@ -41,23 +44,26 @@ def main():
         version=a2a.AGENT_VERSION,
         default_input_modes=a2a.AGENT_DEFAULT_INPUT_MODES,
         default_output_modes=a2a.AGENT_DEFAULT_OUTPUT_MODES,
-        push_notifications=a2a.AGENT_PUSH_NOTIFICATIONS,
         skills=skills or None,
     )
 
     executor = ClaudeAIAgentExecutor(streaming=streaming)
-    handler = DefaultRequestHandler(agent_executor=executor, task_store=InMemoryTaskStore())
-    app = A2AStarletteApplication(agent_card=agent_card, http_handler=handler)
+    handler = DefaultRequestHandler(
+        agent_executor=executor,
+        task_store=InMemoryTaskStore(),
+        agent_card=agent_card,
+    )
 
-    starlette_app = app.build()
-
-    from starlette.responses import JSONResponse
-    from starlette.routing import Route
+    routes = []
+    routes.extend(create_agent_card_routes(agent_card))
+    routes.extend(create_jsonrpc_routes(handler, rpc_url='/'))
 
     async def health(_request):
         return JSONResponse({"status": "ok"})
 
-    starlette_app.router.routes.append(Route("/health", health, methods=["GET"]))
+    routes.append(Route("/health", health, methods=["GET"]))
+
+    starlette_app = Starlette(routes=routes)
 
     logger.info("Starting A2A HTTP server on %s:%s (advertised %s)", bind_host, port, public_url)
     uvicorn.run(starlette_app, host=bind_host, port=port)

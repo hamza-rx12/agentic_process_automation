@@ -98,8 +98,14 @@ def load_a2a_settings() -> A2ASettings:
     
     # If no skills from file, provide a hardcoded default skill
     if not parsed_skills:
-        # Use the default skill from utils as a fallback (convert AgentSkill -> dict)
-        parsed_skills = [get_default_skill().model_dump()]
+        skill = get_default_skill()
+        parsed_skills = [{
+            "id": skill.id,
+            "name": skill.name,
+            "description": skill.description,
+            "tags": list(skill.tags),
+            "examples": list(skill.examples),
+        }]
 
     return A2ASettings(
         AGENT_DESCRIPTION=os.getenv("AGENT_DESCRIPTION", "A2A-compliant agent powered by the Claude Agent SDK for chat."),
