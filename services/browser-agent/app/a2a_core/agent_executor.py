@@ -31,6 +31,7 @@ from app.a2a_core.a2a_conversions import (
     validate_fork_session_request_from_parts
 )
 from app.agent.claude_agent import ClaudeAIAgent
+from app.common.task_context import active_task_id
 
 # Centralized logging
 from app.common.utils import get_logger
@@ -64,6 +65,14 @@ class ClaudeAIAgentExecutor(AgentExecutor):
         if not context.current_task:
             await updater.submit()
         await updater.start_work()
+
+        # Stash the task id so MCP tools can reach it without passing it through
+        # every call frame. context_id is the UUID the orchestrator set = task.id.
+        import uuid as _uuid
+        try:
+            active_task_id.set(_uuid.UUID(context.context_id))
+        except (ValueError, AttributeError):
+            active_task_id.set(None)
 
         # Extract user text input from A2A message parts
         try:
