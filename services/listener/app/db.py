@@ -6,28 +6,35 @@ import os
 import uuid
 from typing import Any, Optional
 
+import asyncio
+
 import asyncpg
 
-_pool: Optional[asyncpg.Pool] = None
+# One pool per event loop so the IMAP thread and uvicorn never share a pool.
+_pools: dict[int, asyncpg.Pool] = {}
 
 
 async def get_pool() -> asyncpg.Pool:
-    global _pool
-    if _pool is None:
-        _pool = await asyncpg.create_pool(
+    loop = asyncio.get_running_loop()
+    key = id(loop)
+    pool = _pools.get(key)
+    if pool is None:
+        pool = await asyncpg.create_pool(
             os.environ["DATABASE_URL"],
             min_size=1,
             max_size=5,
             command_timeout=30,
         )
-    return _pool
+        _pools[key] = pool
+    return pool
 
 
 async def close_pool() -> None:
-    global _pool
-    if _pool is not None:
-        await _pool.close()
-        _pool = None
+    loop = asyncio.get_running_loop()
+    key = id(loop)
+    pool = _pools.pop(key, None)
+    if pool is not None:
+        await pool.close()
 
 
 async def enqueue(

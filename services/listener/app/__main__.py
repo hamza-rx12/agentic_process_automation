@@ -24,7 +24,7 @@ import time
 import uuid
 
 from app.config import ALERTS_HTTP_PORT
-from app.db import enqueue
+from app.db import close_pool, enqueue
 from app.mail import MailConnection, get_connection
 
 
@@ -116,46 +116,54 @@ def _run_alerts_server() -> None:
 def _run() -> None:
     log.info("Starting — IMAP IDLE mode, alerts port=%d", ALERTS_HTTP_PORT)
 
+    # Create one persistent event loop so the asyncpg pool stays alive.
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+
     mail: MailConnection | None = None
     backoff = _BACKOFF_INITIAL
 
-    while True:
-        if mail is None:
+    try:
+        while True:
+            if mail is None:
+                try:
+                    mail = get_connection()
+                    mail.connect()
+                    log.info("Mail connected.")
+                    backoff = _BACKOFF_INITIAL
+                except Exception as e:
+                    log.error("Mail failed: %s — retry in %ds", e, backoff)
+                    time.sleep(backoff)
+                    backoff = min(backoff * 2, _BACKOFF_MAX)
+                    continue
+
             try:
-                mail = get_connection()
-                mail.connect()
-                log.info("Mail connected.")
-                backoff = _BACKOFF_INITIAL
+                messages = mail.idle_check()
             except Exception as e:
-                log.error("Mail failed: %s — retry in %ds", e, backoff)
-                time.sleep(backoff)
-                backoff = min(backoff * 2, _BACKOFF_MAX)
+                log.error("Poll failed: %s — reconnecting", e)
+                try:
+                    mail.disconnect()
+                except Exception:
+                    pass
+                mail = None
                 continue
 
-        try:
-            messages = mail.idle_check()
-        except Exception as e:
-            log.error("Poll failed: %s — reconnecting", e)
-            try:
-                mail.disconnect()
-            except Exception:
-                pass
-            mail = None
-            continue
-
-        for msg in messages:
-            try:
-                payload = dataclasses.asdict(msg)
-                task_id = asyncio.run(
-                    enqueue(
-                        source="email",
-                        subject=msg.subject,
-                        payload=payload,
+            for msg in messages:
+                try:
+                    payload = dataclasses.asdict(msg)
+                    task_id = loop.run_until_complete(
+                        enqueue(
+                            source="email",
+                            subject=msg.subject,
+                            payload=payload,
+                        )
                     )
-                )
-                log.info("Queued: %r / %r task_id=%s", msg.sender, msg.subject, task_id)
-            except Exception as e:
-                log.error("Enqueue failed: %s", e)
+                    log.info("Queued: %r / %r task_id=%s", msg.sender, msg.subject, task_id)
+                except Exception as e:
+                    log.error("Enqueue failed: %s", e)
+    finally:
+        loop.run_until_complete(close_pool())
+        loop.close()
 
 
 def main() -> None:
