@@ -1,0 +1,32 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ .Release.Name }}-reaper
+  labels:
+    app.kubernetes.io/name: reaper
+    {{- include "apa.labels" . | nindent 4 }}
+spec:
+  schedule: {{ .Values.reaper.schedule | quote }}
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: reaper
+            {{- include "apa.labels" . | nindent 12 }}
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: reaper
+              image: {{ .Values.migrate.image | quote }}
+              imagePullPolicy: {{ .Values.imagePullPolicy }}
+              command: ["python", "reap.py"]
+              env:
+                - name: DATABASE_URL
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ .Values.postgres.secretName }}
+                      key: uri
+                - name: REAPER_STUCK_AFTER_MINUTES
+                  value: {{ .Values.reaper.stuckAfterMinutes | quote }}

@@ -29,11 +29,14 @@ spec:
           envFrom:
             - secretRef:
                 name: apa-secrets
-          {{- with $svc.env }}
           env:
-            {{- range $k, $v := . }}
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $.Values.postgres.secretName }}
+                  key: uri
+            {{- range $k, $v := $svc.env }}
             - name: {{ $k }}
               value: {{ $v | quote }}
             {{- end }}
-          {{- end }}
 {{- end }}
