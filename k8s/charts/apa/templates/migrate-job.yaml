@@ -19,7 +19,7 @@ spec:
       restartPolicy: OnFailure
       containers:
         - name: migrate
-          image: {{ .Values.migrate.image | quote }}
+          image: "{{ .Values.migrate.image }}:{{ .Values.imageTag }}"
           imagePullPolicy: {{ .Values.imagePullPolicy }}
           env:
             - name: DATABASE_URL

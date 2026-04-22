@@ -3,12 +3,13 @@
 # part of this chart — install those from upstream community charts.
 
 imagePullPolicy: IfNotPresent
+imageTag: latest   # updated automatically by CI on every push to master
 
 postgres:
   secretName: apa-pg-app   # CNPG auto-generates this secret with key: uri
 
 migrate:
-  image: ghcr.io/hamza-rx12/apa-migrate:latest
+  image: ghcr.io/hamza-rx12/apa-migrate
 
 reaper:
   schedule: "*/1 * * * *"
@@ -16,7 +17,7 @@ reaper:
 
 services:
   listener:
-    image: ghcr.io/hamza-rx12/apa-listener:latest
+    image: ghcr.io/hamza-rx12/apa-listener
     replicas: 1
     ports:
       - name: alerts
@@ -25,14 +26,14 @@ services:
       ALERTS_HTTP_PORT: "9000"
 
   orchestrator:
-    image: ghcr.io/hamza-rx12/apa-orchestrator:latest
+    image: ghcr.io/hamza-rx12/apa-orchestrator
     replicas: 1
     env:
       BROWSER_AGENT_URL: http://browser-agent:8080
       MONITOR_AGENT_URL: http://monitor-agent:8081
 
   browser-agent:
-    image: ghcr.io/hamza-rx12/apa-browser-agent:latest
+    image: ghcr.io/hamza-rx12/apa-browser-agent
     replicas: 1
     ports:
       - name: http
@@ -44,7 +45,7 @@ services:
       BROWSER_HEADLESS: "true"
 
   monitor-agent:
-    image: ghcr.io/hamza-rx12/apa-monitor-agent:latest
+    image: ghcr.io/hamza-rx12/apa-monitor-agent
     replicas: 1
     ports:
       - name: http
