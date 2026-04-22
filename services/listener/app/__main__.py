@@ -1,20 +1,20 @@
-"""IMAP listener: watches mailbox via IDLE and publishes new mail to RabbitMQ.
+"""IMAP listener: watches mailbox via IDLE and publishes new tasks to Postgres.
 
 The IMAP IDLE protocol (RFC 2177) lets the server push a notification the
 instant a new message arrives, so we never poll on a fixed timer.
 
 Also runs a minimal HTTP server in a background thread that receives
-Alertmanager webhooks on POST /alerts and publishes them to the same
-RabbitMQ queue with source="alert".
+Alertmanager webhooks on POST /alerts and writes them to the tasks table.
 
 Loop:
     1. mail.idle_check() — enters IDLE, blocks until the server sends EXISTS
        (= new mail) or the 29-min keep-alive timeout fires.
-    2. On EXISTS: fetch every UNSEEN message and publish each to RabbitMQ.
+    2. On EXISTS: fetch every UNSEEN message and INSERT each into tasks.
     3. On timeout: nothing to do, loop back and re-enter IDLE immediately.
 """
 from __future__ import annotations
 
+import asyncio
 import dataclasses
 import json
 import logging
@@ -23,9 +23,8 @@ import threading
 import time
 import uuid
 
-import pika
-
-from app.config import ALERTS_HTTP_PORT, RABBITMQ_QUEUE, RABBITMQ_URL
+from app.config import ALERTS_HTTP_PORT
+from app.db import enqueue
 from app.mail import MailConnection, get_connection
 
 
@@ -53,40 +52,6 @@ log = logging.getLogger("listener")
 
 _BACKOFF_INITIAL = 5
 _BACKOFF_MAX = 300
-_HEARTBEAT = 60  # seconds — must be less than RabbitMQ's timeout
-
-# Module-level RabbitMQ channel shared between the IMAP loop and the alerts
-# webhook. Protected by _rmq_lock.
-_channel = None
-_rmq_lock = threading.Lock()
-
-
-def _connect_rabbitmq():
-    params = pika.URLParameters(RABBITMQ_URL)
-    params.heartbeat = _HEARTBEAT
-    conn = pika.BlockingConnection(params)
-    ch = conn.channel()
-    ch.queue_declare(queue=RABBITMQ_QUEUE, durable=True)
-
-    def _heartbeat_loop():
-        while conn.is_open:
-            try:
-                conn.process_data_events()
-            except Exception:
-                break
-            time.sleep(_HEARTBEAT / 2)
-
-    threading.Thread(target=_heartbeat_loop, daemon=True).start()
-    return conn, ch
-
-
-def _publish(channel, payload: dict) -> None:
-    channel.basic_publish(
-        exchange="",
-        routing_key=RABBITMQ_QUEUE,
-        body=json.dumps(payload),
-        properties=pika.BasicProperties(delivery_mode=2),
-    )
 
 
 # ── Alertmanager webhook ─────────────────────────────────────────────────────
@@ -112,26 +77,24 @@ def _build_alerts_app():
         for alert in alerts:
             labels = alert.get("labels", {})
 
-            # Loop guard #2: drop anything from the monitor-agent itself.
+            # Loop guard: drop anything from the monitor-agent itself.
             if labels.get("service") == "monitor-agent":
                 log.info("Dropping loop-guard alert: %s", labels.get("alertname"))
                 continue
 
-            payload = {
-                "source": "alert",
-                "message_id": alert.get("fingerprint") or str(uuid.uuid4()),
-                "alert": alert,
-            }
-            with _rmq_lock:
-                if _channel and _channel.is_open:
-                    try:
-                        _publish(_channel, payload)
-                        published += 1
-                        log.info("Queued alert: %s", labels.get("alertname", "?"))
-                    except Exception as e:
-                        log.error("Failed to publish alert: %s", e)
-                else:
-                    log.warning("RabbitMQ channel not ready — alert dropped: %s", labels.get("alertname"))
+            try:
+                task_id = await enqueue(
+                    source="alert",
+                    subject=labels.get("alertname"),
+                    payload={
+                        "alert": alert,
+                        "fingerprint": alert.get("fingerprint") or str(uuid.uuid4()),
+                    },
+                )
+                published += 1
+                log.info("Queued alert: %s task_id=%s", labels.get("alertname", "?"), task_id)
+            except Exception as e:
+                log.error("Failed to enqueue alert: %s", e)
 
         return JSONResponse({"published": published})
 
@@ -151,13 +114,9 @@ def _run_alerts_server() -> None:
 # ── IMAP loop ────────────────────────────────────────────────────────────────
 
 def _run() -> None:
-    global _channel
-
-    log.info("Starting — IMAP IDLE mode, queue=%r, alerts port=%d", RABBITMQ_QUEUE, ALERTS_HTTP_PORT)
+    log.info("Starting — IMAP IDLE mode, alerts port=%d", ALERTS_HTTP_PORT)
 
     mail: MailConnection | None = None
-    rmq_conn = None
-    channel = None
     backoff = _BACKOFF_INITIAL
 
     while True:
@@ -169,19 +128,6 @@ def _run() -> None:
                 backoff = _BACKOFF_INITIAL
             except Exception as e:
                 log.error("Mail failed: %s — retry in %ds", e, backoff)
-                time.sleep(backoff)
-                backoff = min(backoff * 2, _BACKOFF_MAX)
-                continue
-
-        if channel is None or not rmq_conn or rmq_conn.is_closed:
-            try:
-                rmq_conn, channel = _connect_rabbitmq()
-                with _rmq_lock:
-                    _channel = channel
-                log.info("RabbitMQ connected.")
-                backoff = _BACKOFF_INITIAL
-            except Exception as e:
-                log.error("RabbitMQ failed: %s — retry in %ds", e, backoff)
                 time.sleep(backoff)
                 backoff = min(backoff * 2, _BACKOFF_MAX)
                 continue
@@ -200,25 +146,19 @@ def _run() -> None:
         for msg in messages:
             try:
                 payload = dataclasses.asdict(msg)
-                payload["source"] = "email"
-                with _rmq_lock:
-                    _publish(channel, payload)
-                log.info("Queued: %r / %r", msg.sender, msg.subject)
+                task_id = asyncio.run(
+                    enqueue(
+                        source="email",
+                        subject=msg.subject,
+                        payload=payload,
+                    )
+                )
+                log.info("Queued: %r / %r task_id=%s", msg.sender, msg.subject, task_id)
             except Exception as e:
-                log.error("Publish failed: %s", e)
-                try:
-                    rmq_conn.close()
-                except Exception:
-                    pass
-                channel = None
-                rmq_conn = None
-                with _rmq_lock:
-                    _channel = None
-                break
+                log.error("Enqueue failed: %s", e)
 
 
 def main() -> None:
-    # Start the alerts webhook server in a daemon thread.
     threading.Thread(target=_run_alerts_server, daemon=True, name="alerts-server").start()
 
     try:
