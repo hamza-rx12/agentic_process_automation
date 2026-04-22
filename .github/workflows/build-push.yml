@@ -19,7 +19,7 @@ jobs:
       packages: write
     strategy:
       matrix:
-        service: [listener, orchestrator, browser-agent, monitor-agent]
+        service: [listener, orchestrator, browser-agent, monitor-agent, migrate]
     steps:
       - uses: actions/checkout@v4
 
