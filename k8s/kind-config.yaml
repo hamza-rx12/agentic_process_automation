@@ -5,12 +5,12 @@
 #   kind delete cluster --name apa
 #
 # Layout: 1 control-plane + 2 workers — enough to exercise pod anti-affinity
-# for RabbitMQ quorum queues and Postgres replicas without over-committing.
+# for Postgres replicas without over-committing.
 #
 # extraPortMappings on the control-plane node expose a handful of service
 # ports on the host (via NodePort or an ingress controller) so you can hit
-# Grafana / RabbitMQ management / the listener alerts webhook from your
-# browser without `kubectl port-forward` every time.
+# Grafana / the listener alerts webhook from your browser without
+# `kubectl port-forward` every time.
 
 kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
@@ -48,9 +48,6 @@ nodes:
         protocol: TCP
       - containerPort: 30900   # prometheus
         hostPort: 9090
-        protocol: TCP
-      - containerPort: 31567   # rabbitmq management UI
-        hostPort: 15672
         protocol: TCP
       - containerPort: 30093   # alertmanager
         hostPort: 9093

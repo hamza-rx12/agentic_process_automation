@@ -43,7 +43,7 @@ apa/
 │   └── monitor-agent/
 ├── k8s/
 │   ├── charts/apa/      # mono-chart deploying the four services + dashboards
-│   ├── infra/           # rabbitmq operator, kube-prometheus, loki, alloy values
+│   ├── infra/           # cnpg cluster, kube-prometheus, loki, alloy values
 │   ├── argocd/          # root + per-app Applications (app-of-apps)
 │   └── kind-config.yaml # local kind cluster config + NodePort mappings
 ├── monitoring/          # legacy compose-native configs (prometheus, alloy, loki)

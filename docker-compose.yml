@@ -2,19 +2,31 @@ name: apa
 
 services:
 
-  rabbitmq:
-    image: rabbitmq:3-management-alpine
-    ports:
-      - "5672:5672"
-      - "15672:15672"
+  postgres:
+    image: postgres:16-alpine
     environment:
-      RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS: "-rabbit vm_memory_high_watermark 0.95"
+      POSTGRES_DB: apa
+      POSTGRES_USER: apa
+      POSTGRES_PASSWORD: apa
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD", "rabbitmq-diagnostics", "check_port_connectivity"]
-      interval: 10s
-      timeout: 10s
+      test: ["CMD-SHELL", "pg_isready -U apa -d apa"]
+      interval: 5s
+      timeout: 5s
       retries: 10
-      start_period: 30s
+      start_period: 10s
+    networks: [apa]
+
+  migrate:
+    image: apa-migrate:latest
+    build: ./services/migrate
+    environment:
+      DATABASE_URL: postgresql://apa:apa@postgres/apa
+    depends_on:
+      postgres: { condition: service_healthy }
     networks: [apa]
 
   listener:
@@ -22,12 +34,12 @@ services:
     build: ./services/listener
     env_file: .env
     environment:
-      RABBITMQ_URL: amqp://guest:guest@rabbitmq/
+      DATABASE_URL: postgresql://apa:apa@postgres/apa
       ALERTS_HTTP_PORT: "9000"
     ports:
       - "9000:9000"
     depends_on:
-      rabbitmq: { condition: service_healthy }
+      migrate: { condition: service_completed_successfully }
     restart: unless-stopped
     networks: [apa]
 
@@ -42,6 +54,7 @@ services:
       AGENT_DESCRIPTION: "Executes web browsing tasks using Playwright."
       BROWSER_HEADLESS: "true"
       LOG_LEVEL: "INFO"
+      DATABASE_URL: postgresql://apa:apa@postgres/apa
     ports:
       - "8080:8080"
     healthcheck:
@@ -50,6 +63,8 @@ services:
       timeout: 5s
       retries: 5
       start_period: 10s
+    depends_on:
+      migrate: { condition: service_completed_successfully }
     restart: unless-stopped
     networks: [apa]
 
@@ -65,6 +80,7 @@ services:
       GRAFANA_URL: http://grafana:3000
       GRAFANA_API_KEY: ""
       LOG_LEVEL: "INFO"
+      DATABASE_URL: postgresql://apa:apa@postgres/apa
     ports:
       - "8081:8081"
     healthcheck:
@@ -75,6 +91,7 @@ services:
       start_period: 10s
     depends_on:
       grafana: { condition: service_started }
+      migrate: { condition: service_completed_successfully }
     restart: unless-stopped
     networks: [apa]
 
@@ -83,14 +100,14 @@ services:
     build: ./services/orchestrator
     env_file: .env
     environment:
-      RABBITMQ_URL: amqp://guest:guest@rabbitmq/
+      DATABASE_URL: postgresql://apa:apa@postgres/apa
       BROWSER_AGENT_URL: http://browser-agent:8080
       MONITOR_AGENT_URL: http://monitor-agent:8081
       AGENT_NAME: "orchestrator"
       AGENT_DESCRIPTION: "Email-driven orchestrator that dispatches browser and monitor tasks."
       LOG_LEVEL: "INFO"
     depends_on:
-      rabbitmq:      { condition: service_healthy }
+      migrate:       { condition: service_completed_successfully }
       browser-agent: { condition: service_healthy }
       monitor-agent: { condition: service_healthy }
     restart: unless-stopped
@@ -169,6 +186,7 @@ services:
     networks: [apa]
 
 volumes:
+  postgres-data:
   prometheus-data:
   loki-data:
   grafana-data:
