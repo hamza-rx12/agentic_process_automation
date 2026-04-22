@@ -90,3 +90,32 @@ Already wired (`30080 → 8080`), but note: any future NodePort we add
 requires cluster recreation. Consider switching to an ingress-based
 approach (nginx-ingress is already mapped on 80/443) once service
 count grows.
+
+---
+
+## 7. CNPG → RDS / Neon at EKS time
+
+**What:** Replace the in-cluster CNPG `Cluster` with an external managed
+Postgres (AWS RDS, Aurora Serverless, or Neon). One connection-string swap.
+
+**Why deferred:** Still on kind. CNPG is fine for local dev. External DB
+makes sense only when moving to EKS where you want separate blast radius
+and zero DB ops.
+
+**Next step:** When provisioning EKS — create RDS instance, flip
+`DATABASE_URL` in External Secrets Operator (ties in with TODO #5), delete
+`k8s/infra/cnpg/` and the `postgres` ArgoCD app.
+
+---
+
+## 8. Grafana Postgres datasource password injection
+
+**What:** The `grafana-datasources.yaml` ConfigMap uses a
+`"${POSTGRES_PASSWORD}"` placeholder for the Postgres datasource. Grafana's
+sidecar does not interpolate env vars in provisioning files.
+
+**Next step:** Either (a) switch to Grafana's `secureJsonData` via a
+`GrafanaDatasource` CR if grafana-operator is installed, or (b) use a
+Helm template to inject the real password from the CNPG secret. For now,
+the Postgres datasource in Grafana must have its password set manually
+after first deploy.
