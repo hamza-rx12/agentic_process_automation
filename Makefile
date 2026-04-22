@@ -20,6 +20,7 @@ KPS_VERSION    := 83.5.0
 LOKI_VERSION   := 6.55.0
 ALLOY_VERSION  := 1.7.0
 ARGOCD_VERSION := 7.7.5
+CNPG_VERSION   := 0.23.0
 
 ARGOCD_NS     := argocd
 
@@ -41,9 +42,9 @@ help:
 	@echo "  cluster-down      Delete kind cluster"
 	@echo ""
 	@echo "Infra:"
-	@echo "  infra-install     Install RabbitMQ + Prometheus stack + Loki + Alloy"
+	@echo "  infra-install     Install CNPG + Prometheus stack + Loki + Alloy"
 	@echo "  infra-uninstall   Remove infra charts"
-	@echo "  rabbitmq          RabbitMQ operator + broker CR"
+	@echo "  cnpg              CNPG operator + apa-pg cluster CR"
 	@echo "  kube-prometheus   Prometheus + Grafana + Alertmanager"
 	@echo "  loki              Grafana Loki (SingleBinary mode)"
 	@echo "  alloy             Grafana Alloy log collector (DaemonSet)"
@@ -60,12 +61,13 @@ help:
 	@echo "  argocd-forward    Port-forward ArgoCD UI → localhost:8080"
 	@echo ""
 	@echo "Access:"
-	@echo "  forward           Port-forward Grafana/Prom/AM/RabbitMQ (background)"
+	@echo "  forward           Port-forward Grafana/Prom/AM/Listener (background)"
 	@echo "  forward-stop      Kill all port-forwards"
 	@echo ""
 	@echo "Diagnostics:"
 	@echo "  status            kubectl get pods -n $(NAMESPACE)"
 	@echo "  logs SVC=<name>   Tail logs for a deployment"
+	@echo "  psql              Open psql session on apa-pg-1"
 
 # ─── Combos ──────────────────────────────────────────────────────────────
 .PHONY: up
@@ -99,14 +101,18 @@ namespace:
 repos:
 	@helm repo add prometheus-community https://prometheus-community.github.io/helm-charts --force-update >/dev/null
 	@helm repo add grafana https://grafana.github.io/helm-charts --force-update >/dev/null
+	@helm repo add cnpg https://cloudnative-pg.github.io/charts --force-update >/dev/null
 	@helm repo update >/dev/null
 
 # ─── Infra ───────────────────────────────────────────────────────────────
-.PHONY: rabbitmq
-rabbitmq: namespace
-	kubectl apply -k $(INFRA_DIR)/rabbitmq/
-	kubectl -n rabbitmq-system wait --for=condition=Available deployment/rabbitmq-cluster-operator --timeout=120s
-	kubectl -n $(NAMESPACE) wait --for=condition=Ready pod -l app.kubernetes.io/name=rabbitmq --timeout=180s
+.PHONY: cnpg
+cnpg: namespace repos
+	helm upgrade --install cnpg-operator cnpg/cloudnative-pg \
+		--namespace cnpg-system --create-namespace \
+		--version $(CNPG_VERSION)
+	kubectl -n cnpg-system wait --for=condition=Available deployment/cnpg-operator-cloudnative-pg --timeout=120s
+	kubectl apply -f $(INFRA_DIR)/cnpg/cluster.yaml
+	kubectl -n $(NAMESPACE) wait --for=condition=Ready cluster/apa-pg --timeout=180s
 
 .PHONY: kube-prometheus
 kube-prometheus: namespace repos
@@ -130,14 +136,15 @@ alloy: namespace repos
 		-f $(INFRA_DIR)/alloy-values.yaml
 
 .PHONY: infra-install
-infra-install: rabbitmq kube-prometheus loki alloy
+infra-install: cnpg kube-prometheus loki alloy
 
 .PHONY: infra-uninstall
 infra-uninstall:
 	-helm uninstall alloy --namespace $(NAMESPACE)
 	-helm uninstall loki --namespace $(NAMESPACE)
 	-helm uninstall kube-prometheus --namespace $(NAMESPACE)
-	-kubectl delete -k $(INFRA_DIR)/rabbitmq/
+	-kubectl delete -f $(INFRA_DIR)/cnpg/cluster.yaml
+	-helm uninstall cnpg-operator --namespace cnpg-system
 
 # ─── App ─────────────────────────────────────────────────────────────────
 .PHONY: secret
@@ -193,13 +200,11 @@ forward:
 	@kubectl -n $(NAMESPACE) port-forward svc/kube-prometheus-grafana 3000:80 >/dev/null 2>&1 & echo $$! > $(PID_DIR)/grafana.pid
 	@kubectl -n $(NAMESPACE) port-forward svc/prometheus-operated 9090:9090 >/dev/null 2>&1 & echo $$! > $(PID_DIR)/prometheus.pid
 	@kubectl -n $(NAMESPACE) port-forward svc/alertmanager-operated 9093:9093 >/dev/null 2>&1 & echo $$! > $(PID_DIR)/alertmanager.pid
-	@kubectl -n $(NAMESPACE) port-forward svc/rabbitmq 15672:15672 >/dev/null 2>&1 & echo $$! > $(PID_DIR)/rabbitmq.pid
 	@kubectl -n $(NAMESPACE) port-forward svc/listener 9000:9000 >/dev/null 2>&1 & echo $$! > $(PID_DIR)/listener.pid
 	@sleep 1
 	@echo "Grafana       → http://localhost:3000 (admin / admin)"
 	@echo "Prometheus    → http://localhost:9090"
 	@echo "Alertmanager  → http://localhost:9093"
-	@echo "RabbitMQ UI   → http://localhost:15672 (guest / guest)"
 	@echo "Listener API  → http://localhost:9000"
 
 .PHONY: forward-stop
@@ -220,3 +225,7 @@ status:
 logs:
 	@test -n "$(SVC)" || { echo "Usage: make logs SVC=<name>"; exit 1; }
 	kubectl -n $(NAMESPACE) logs -f deployment/$(SVC)
+
+.PHONY: psql
+psql:
+	kubectl -n $(NAMESPACE) exec -it apa-pg-1 -- psql -U apa -d apa
