@@ -1,0 +1,83 @@
+{
+  "annotations": { "list": [] },
+  "panels": [
+    {
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "gridPos": { "h": 4, "w": 24, "x": 0, "y": 0 },
+      "id": 1,
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "orientation": "auto",
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "postgres" },
+          "rawSql": "SELECT status, count(*) AS value FROM tasks GROUP BY status",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "title": "Task Counts by Status",
+      "type": "stat"
+    },
+    {
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "gridPos": { "h": 12, "w": 24, "x": 0, "y": 4 },
+      "id": 2,
+      "options": {
+        "frameIndex": 0,
+        "showHeader": true,
+        "sortBy": [{ "displayName": "created_at", "desc": true }]
+      },
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "postgres" },
+          "rawSql": "SELECT id, source, subject, status, attempts, last_error, created_at, started_at, finished_at FROM tasks ORDER BY created_at DESC LIMIT 100",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "title": "Recent Tasks",
+      "type": "table"
+    },
+    {
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 16 },
+      "id": 3,
+      "options": {
+        "frameIndex": 0,
+        "showHeader": true
+      },
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "postgres" },
+          "rawSql": "SELECT id, source, subject, attempts, last_error, created_at FROM tasks WHERE status IN ('failed','dead') ORDER BY created_at DESC LIMIT 50",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "title": "Failed / Dead Tasks",
+      "type": "table"
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "tags": ["tasks", "postgres"],
+  "templating": { "list": [] },
+  "time": { "from": "now-6h", "to": "now" },
+  "timezone": "browser",
+  "title": "APA Tasks",
+  "uid": "apa-tasks"
+}

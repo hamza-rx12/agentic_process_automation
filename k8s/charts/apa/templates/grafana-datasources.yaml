@@ -21,3 +21,18 @@ data:
         isDefault: false
         jsonData:
           maxLines: 1000
+  postgres.yaml: |
+    apiVersion: 1
+    datasources:
+      - name: Postgres
+        type: postgres
+        uid: postgres
+        access: proxy
+        url: apa-pg-rw.{{ .Release.Namespace }}.svc.cluster.local:5432
+        database: apa
+        user: apa
+        secureJsonData:
+          password: "${POSTGRES_PASSWORD}"
+        jsonData:
+          sslmode: require
+          postgresVersion: 1600
