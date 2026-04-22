@@ -16,7 +16,7 @@ from app.configs.environment_vars.model_settings import model_settings
 from app.configs.environment_vars.aiplatform_settings import aiplatform_settings
 from app.configs.environment_vars.general_settings import general_settings
 from app.configs.environment_vars.a2a_settings import a2a_settings
-from app.configs.environment_vars.rabbitmq_settings import rabbitmq_settings
+from app.configs.environment_vars.database_settings import database_settings
 from app.configs.environment_vars.dispatch_settings import dispatch_settings
 import os
 
@@ -132,9 +132,9 @@ class AppConfig:
         return a2a_settings
 
     @staticmethod
-    def get_rabbitmq_config():
-        """Get RabbitMQ configuration."""
-        return rabbitmq_settings
+    def get_database_config():
+        """Get database configuration."""
+        return database_settings
 
     @staticmethod
     def get_dispatch_config():

@@ -27,6 +27,7 @@ from .aiplatform_settings import (
     aiplatform_settings,
     load_aiplatform_settings,
 )
+from .database_settings import DatabaseSettings, database_settings, load_database_settings
 from .general_settings import GeneralSettings, general_settings, load_general_settings
 from .model_settings import ModelSettingsConfig, load_model_settings, model_settings
 
@@ -51,4 +52,8 @@ __all__ = [
     "AIPlatformSettings",
     "aiplatform_settings",
     "load_aiplatform_settings",
+    # Database Settings
+    "DatabaseSettings",
+    "database_settings",
+    "load_database_settings",
 ]
