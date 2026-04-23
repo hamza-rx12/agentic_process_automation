@@ -12,6 +12,7 @@ from a2a.server.tasks import TaskUpdater
 from a2a.types import (
     InternalError,
     Part,
+    Task,
     TaskState,
     TaskStatus,
     UnsupportedOperationError,
@@ -46,9 +47,17 @@ class ClaudeAIAgentExecutor(AgentExecutor):
         if not context.message:
             raise ValueError("RequestContext must have a message")
 
-        updater = TaskUpdater(event_queue, context.task_id, context.context_id)
+        # Enqueue a Task object first — the A2A consumer requires a Task
+        # event before it will accept any TaskStatusUpdateEvent.
         if not context.current_task:
-            await updater.submit()
+            initial_task = Task(
+                id=context.task_id,
+                context_id=context.context_id,
+                status=TaskStatus(state=TaskState.TASK_STATE_SUBMITTED),
+            )
+            await event_queue.enqueue_event(initial_task)
+
+        updater = TaskUpdater(event_queue, context.task_id, context.context_id)
         await updater.start_work()
 
         import uuid as _uuid
