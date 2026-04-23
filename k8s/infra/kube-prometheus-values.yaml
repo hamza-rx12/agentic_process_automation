@@ -1,6 +1,16 @@
 # kube-prometheus-stack values tuned for kind (dev)
 # Trims replicas, disables persistence, exposes NodePorts matching kind-config.yaml.
 
+prometheusOperator:
+  admissionWebhooks:
+    annotations:
+      argocd.argoproj.io/hook: PreSync
+      argocd.argoproj.io/hook-delete-policy: HookSucceeded
+    patch:
+      annotations:
+        argocd.argoproj.io/hook: PreSync
+        argocd.argoproj.io/hook-delete-policy: HookSucceeded
+
 prometheus:
   prometheusSpec:
     replicas: 1
