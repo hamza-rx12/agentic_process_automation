@@ -42,9 +42,9 @@ def _format_task_prompt(task: dict) -> str:
 
 async def _process(agent: ClaudeAIAgent, task: dict) -> None:
     task_id: uuid.UUID = task["id"]
-    prompt = _format_task_prompt(task)
     logger.info("processing task_id=%s source=%s subject=%r", task_id, task.get("source"), task.get("subject"))
     try:
+        prompt = _format_task_prompt(task)
         result = await agent.invoke(prompt, context_id=str(task_id))
         text = result.get("text", "")
         meta = result.get("metadata", {})
@@ -109,3 +109,6 @@ if __name__ == "__main__":
         asyncio.run(main())
     except KeyboardInterrupt:
         pass
+    except Exception:
+        logger.exception("Fatal error")
+        raise
