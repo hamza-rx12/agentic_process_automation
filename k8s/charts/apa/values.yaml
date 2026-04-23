@@ -3,7 +3,7 @@
 # part of this chart — install those from upstream community charts.
 
 imagePullPolicy: IfNotPresent
-imageTag: "10ed036"
+imageTag: "f67ed18"
 
 postgres:
   secretName: apa-pg-app   # CNPG auto-generates this secret with key: uri
