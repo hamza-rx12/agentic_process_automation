@@ -57,7 +57,7 @@ async def enqueue(
             """,
             source,
             subject,
-            json.dumps(payload),
+            payload,
         )
         return row["id"]
 
@@ -177,5 +177,5 @@ async def set_artifact(task_id: uuid.UUID, key: str, value: Any) -> None:
             """,
             task_id,
             key,
-            json.dumps(value),
+            value,
         )
