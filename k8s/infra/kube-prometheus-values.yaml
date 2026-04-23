@@ -1,15 +1,16 @@
 # kube-prometheus-stack values tuned for kind (dev)
 # Trims replicas, disables persistence, exposes NodePorts matching kind-config.yaml.
 
+# Admission webhooks validate PrometheusRule / ServiceMonitor CRDs.
+# Disabled in kind because the chart's cert-generation Jobs + webhook configs
+# use Helm hook annotations that ArgoCD reinterprets as temporary hooks,
+# causing the webhook configs to be deleted and the patch Job to loop forever.
+# Safe to drop in dev; re-enable (with cert-manager) for real deployments.
 prometheusOperator:
   admissionWebhooks:
-    annotations:
-      argocd.argoproj.io/hook: PreSync
-      argocd.argoproj.io/hook-delete-policy: HookSucceeded
+    enabled: false
     patch:
-      annotations:
-        argocd.argoproj.io/hook: PreSync
-        argocd.argoproj.io/hook-delete-policy: HookSucceeded
+      enabled: false
 
 prometheus:
   prometheusSpec:
