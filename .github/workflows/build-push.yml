@@ -61,7 +61,7 @@ jobs:
       - name: Update imageTag in values.yaml
         run: |
           SHA=$(echo "${{ github.sha }}" | cut -c1-7)
-          sed -i "s/^imageTag: .*/imageTag: ${SHA}/" k8s/charts/apa/values.yaml
+          sed -i "s/^imageTag: .*/imageTag: \"${SHA}\"/" k8s/charts/apa/values.yaml
 
       - name: Commit updated imageTag
         run: |
