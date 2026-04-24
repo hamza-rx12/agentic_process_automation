@@ -112,7 +112,7 @@ def build_claude_options(
             _opt = getattr  # shorthand for optional-attr helpers below
             for key in ("allowed_tools", "permission_mode", "setting_sources",
                         "disallowed_tools", "cwd", "max_turns", "mcp_servers",
-                        "can_use_tool", "hooks", "agents"):
+                        "can_use_tool", "hooks", "agents", "max_buffer_size"):
                 val = _opt(base_options, key, None)
                 if val is not None:
                     kwargs[key] = val
@@ -175,6 +175,9 @@ def build_claude_options(
             options_kwargs["cwd"] = cwd
         if max_turns is not None:
             options_kwargs["max_turns"] = max_turns
+
+        # 10MB — Playwright screenshots can exceed the 1MB SDK default
+        options_kwargs["max_buffer_size"] = 10 * 1024 * 1024
 
         # Tool callback setup
         agent_config = AppConfig.get_agent_config()
