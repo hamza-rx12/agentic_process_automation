@@ -9,7 +9,7 @@ import uuid
 from typing import Any
 
 import httpx
-from a2a.client import ClientFactory
+from a2a.client import ClientConfig, ClientFactory
 from a2a.client.card_resolver import A2ACardResolver
 from a2a.types import (
     Message as A2AMessage,
@@ -56,7 +56,7 @@ async def _send_to_browser_agent(instruction: str) -> tuple[str, bool]:
     target_url = AppConfig.get_dispatch_config().BROWSER_AGENT_URL
 
     async with httpx.AsyncClient(timeout=None) as http_client:
-        factory = ClientFactory()
+        factory = ClientFactory(ClientConfig(httpx_client=http_client))
         resolver = A2ACardResolver(http_client, target_url)
         card = await resolver.get_agent_card()
         client = factory.create(card)

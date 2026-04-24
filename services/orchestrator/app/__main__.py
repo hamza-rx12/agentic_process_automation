@@ -50,10 +50,11 @@ async def _process(agent: ClaudeAIAgent, task: dict) -> None:
         meta = result.get("metadata", {})
         await complete(task_id, text, meta.get("session_id"))
         logger.info(
-            "task done task_id=%s turns=%s cost=%s",
+            "task done task_id=%s turns=%s cost=%s\nresponse: %s",
             task_id,
             meta.get("num_turns"),
             meta.get("total_cost_usd"),
+            text,
         )
     except Exception as e:
         logger.exception("task failed task_id=%s", task_id)
