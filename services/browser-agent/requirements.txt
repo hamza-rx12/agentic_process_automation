@@ -1,4 +1,9 @@
 a2a-sdk[http-server]>=1.0.0
+# a2a-sdk 1.0.2 calls FieldDescriptor.label, which protobuf 7.x's upb
+# (C++) backend does not expose as a Python attribute. Pin protobuf to
+# the 5.x line where .label works on both pure-Python and upb backends.
+# https://github.com/a2aproject/a2a-python/issues/173
+protobuf>=5.0,<6
 claude-agent-sdk>=0.1.6
 python-dotenv>=1.1.0,<2
 uvicorn>=0.34.0
