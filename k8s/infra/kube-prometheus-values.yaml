@@ -11,6 +11,11 @@ prometheusOperator:
     enabled: false
     patch:
       enabled: false
+  # Disabling admission webhooks removes the cert Secret the operator
+  # would otherwise mount for its HTTPS endpoint. Switch the operator to
+  # plaintext HTTP so it doesn't try to mount a non-existent secret.
+  tls:
+    enabled: false
 
 prometheus:
   prometheusSpec:
