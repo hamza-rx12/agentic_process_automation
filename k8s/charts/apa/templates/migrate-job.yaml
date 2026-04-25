@@ -9,7 +9,7 @@ metadata:
   labels:
     {{- include "apa.labels" . | nindent 4 }}
 spec:
-  backoffLimit: 3
+  backoffLimit: 6
   template:
     metadata:
       labels:
@@ -21,6 +21,21 @@ spec:
         - name: migrate
           image: "{{ .Values.migrate.image }}:{{ .Values.imageTag }}"
           imagePullPolicy: {{ .Values.imagePullPolicy }}
+          # Argo fires this hook in the same sync wave as the CNPG cluster
+          # bootstrap, so on a cold cluster the DB may briefly refuse
+          # connections. Retry a handful of times before giving up.
+          command: ["sh", "-c"]
+          args:
+            - |
+              for i in $(seq 1 30); do
+                if alembic upgrade head; then
+                  exit 0
+                fi
+                echo "alembic upgrade failed (attempt $i/30) — retrying in 5s"
+                sleep 5
+              done
+              echo "alembic upgrade head failed after 30 attempts"
+              exit 1
           env:
             - name: DATABASE_URL
               valueFrom:
